@@ -1,0 +1,49 @@
+========= COMPUTE-SANITIZER
+========= Barrier error detected. Missing wait.
+=========     at void cutlass::device_kernel<flash::enable_sm90_or_later<flash::FlashAttnFwdSm90<flash::CollectiveMainloopFwdSm90<(int)2, cute::tuple<cute::C<(int)1>, cute::C<(int)1>, cute::C<(int)1>>, cute::tuple<cute::C<(int)128>, cute::C<(int)96>, cute::C<(int)256>>, (int)256, cutlass::bfloat16_t, float, cutlass::arch::Sm90, (bool)1, (bool)0, (bool)0, (bool)1, (bool)1, (bool)0, (bool)0, (bool)0, (bool)1, (bool)1, (bool)0, (bool)0, (bool)0, cutlass::bfloat16_t, (bool)0, (int)1>, flash::CollectiveEpilogueFwd<cute::tuple<cute::C<(int)128>, cute::C<(int)256>, cute::C<(int)96>>, cute::tuple<cute::C<(int)1>, cute::C<(int)1>, cute::C<(int)1>>, cutlass::bfloat16_t, cutlass::arch::Sm90, (int)256, (bool)1, (bool)0, (bool)0, (bool)0>, flash::SingleTileScheduler<(bool)1, (bool)0, (bool)0, (int)128>>>>(T1::Params)+0x2bbd0
+=========     by thread (96,0,0) in block (0,14,0)
+=========     Barrier is located at shared address 0x2cc30
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cudaLaunchKernel [0x764c7] in fa3_int8bf_fusedq_n96.so
+=========         Host Frame: void run_flash_fwd<90, 256, 256, 1, cutlass::bfloat16_t, cutlass::bfloat16_t, true, false, false, true, true, false, false, false, false, false, false, false, false>(Flash_fwd_params&, CUstream_st*) [0xef7e] in fa3_int8bf_fusedq_n96.so
+=========         Host Frame: int8bf_run [0xa271] in fa3_int8bf_fusedq_n96.so
+=========         Host Frame: __call__ in 34_int8bf_fusedq_bench.py:35
+=========         Host Frame: <module> in 32_int8bf_boundaries.py:17
+========= 
+========= Barrier error detected. Missing wait.
+=========     at void cutlass::device_kernel<flash::enable_sm90_or_later<flash::FlashAttnFwdSm90<flash::CollectiveMainloopFwdSm90<(int)2, cute::tuple<cute::C<(int)1>, cute::C<(int)1>, cute::C<(int)1>>, cute::tuple<cute::C<(int)128>, cute::C<(int)96>, cute::C<(int)256>>, (int)256, cutlass::bfloat16_t, float, cutlass::arch::Sm90, (bool)1, (bool)0, (bool)0, (bool)1, (bool)1, (bool)0, (bool)0, (bool)0, (bool)1, (bool)1, (bool)0, (bool)0, (bool)0, cutlass::bfloat16_t, (bool)0, (int)1>, flash::CollectiveEpilogueFwd<cute::tuple<cute::C<(int)128>, cute::C<(int)256>, cute::C<(int)96>>, cute::tuple<cute::C<(int)1>, cute::C<(int)1>, cute::C<(int)1>>, cutlass::bfloat16_t, cutlass::arch::Sm90, (int)256, (bool)1, (bool)0, (bool)0, (bool)0>, flash::SingleTileScheduler<(bool)1, (bool)0, (bool)0, (int)128>>>>(T1::Params)+0x2bbd0
+=========     by thread (97,0,0) in block (0,14,0)
+=========     Barrier is located at shared address 0x2cc30
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cudaLaunchKernel [0x764c7] in fa3_int8bf_fusedq_n96.so
+=========         Host Frame: void run_flash_fwd<90, 256, 256, 1, cutlass::bfloat16_t, cutlass::bfloat16_t, true, false, false, true, true, false, false, false, false, false, false, false, false>(Flash_fwd_params&, CUstream_st*) [0xef7e] in fa3_int8bf_fusedq_n96.so
+=========         Host Frame: int8bf_run [0xa271] in fa3_int8bf_fusedq_n96.so
+=========         Host Frame: __call__ in 34_int8bf_fusedq_bench.py:35
+=========         Host Frame: <module> in 32_int8bf_boundaries.py:17
+========= 
+========= Barrier error detected. Missing wait.
+=========     at void cutlass::device_kernel<flash::enable_sm90_or_later<flash::FlashAttnFwdSm90<flash::CollectiveMainloopFwdSm90<(int)2, cute::tuple<cute::C<(int)1>, cute::C<(int)1>, cute::C<(int)1>>, cute::tuple<cute::C<(int)128>, cute::C<(int)96>, cute::C<(int)256>>, (int)256, cutlass::bfloat16_t, float, cutlass::arch::Sm90, (bool)1, (bool)0, (bool)0, (bool)1, (bool)1, (bool)0, (bool)0, (bool)0, (bool)1, (bool)1, (bool)0, (bool)0, (bool)0, cutlass::bfloat16_t, (bool)0, (int)1>, flash::CollectiveEpilogueFwd<cute::tuple<cute::C<(int)128>, cute::C<(int)256>, cute::C<(int)96>>, cute::tuple<cute::C<(int)1>, cute::C<(int)1>, cute::C<(int)1>>, cutlass::bfloat16_t, cutlass::arch::Sm90, (int)256, (bool)1, (bool)0, (bool)0, (bool)0>, flash::SingleTileScheduler<(bool)1, (bool)0, (bool)0, (int)128>>>>(T1::Params)+0x2bbd0
+=========     by thread (98,0,0) in block (0,14,0)
+=========     Barrier is located at shared address 0x2cc30
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cudaLaunchKernel [0x764c7] in fa3_int8bf_fusedq_n96.so
+=========         Host Frame: void run_flash_fwd<90, 256, 256, 1, cutlass::bfloat16_t, cutlass::bfloat16_t, true, false, false, true, true, false, false, false, false, false, false, false, false>(Flash_fwd_params&, CUstream_st*) [0xef7e] in fa3_int8bf_fusedq_n96.so
+=========         Host Frame: int8bf_run [0xa271] in fa3_int8bf_fusedq_n96.so
+=========         Host Frame: __call__ in 34_int8bf_fusedq_bench.py:35
+=========         Host Frame: <module> in 32_int8bf_boundaries.py:17
+========= 
+Traceback (most recent call last):
+  File "/root/gdn35/20261024-fp8-accuracy/scripts/32_int8bf_boundaries.py", line 17, in <module>
+    first=f().clone();torch.cuda.synchronize()
+                      ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/sglang/lib/python3.12/site-packages/torch/cuda/__init__.py", line 1219, in synchronize
+    return torch._C._cuda_synchronize()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.AcceleratorError: CUDA error: unspecified launch failure
+Search for `cudaErrorLaunchFailure' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+
+========= Target application returned an error
+========= ERROR SUMMARY: 1824 errors
+========= ERROR SUMMARY: 1821 errors were not printed. Use --print-limit option to adjust the number of printed errors

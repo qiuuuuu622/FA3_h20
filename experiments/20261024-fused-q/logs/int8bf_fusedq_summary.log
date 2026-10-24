@@ -1,0 +1,11 @@
+fa3_int8bf_n96           mean_ms=6.8372 speedup_vs_bf16=1.2922 rel_bf16=0.5108% worst=0.7130% strict_pass=0/40 elem_frac=0.9867 finite=40/40 rel_sim=0.1687% bitwise_repeat=40/40
+fa3_int8bf_fusedq_n96    mean_ms=6.9955 speedup_vs_bf16=1.2617 rel_bf16=0.5108% worst=0.7130% strict_pass=0/40 elem_frac=0.9867 finite=40/40 rel_sim=0.1687% bitwise_repeat=40/40
+fa3_int8bf_fusedq_n80    mean_ms=7.0427 speedup_vs_bf16=1.2532 rel_bf16=0.5108% worst=0.7131% strict_pass=0/40 elem_frac=0.9867 finite=40/40 rel_sim=0.1687% bitwise_repeat=40/40
+ctrl_bf16                mean_ms=9.1678 speedup_vs_bf16=0.9640 rel_bf16=0.0000% worst=0.0000% strict_pass=40/40 elem_frac=1.0000 finite=40/40 bitwise_repeat=40/40
+bf16                     mean_ms=8.8501 speedup_vs_bf16=1.0000 rel_bf16=0.0000% worst=0.0000% strict_pass=40/40 elem_frac=1.0000 finite=40/40 bitwise_repeat=40/40
+fp8_promote1_c128        mean_ms=4.6828 speedup_vs_bf16=1.8869 rel_bf16=3.2059% worst=6.2576% strict_pass=0/40 elem_frac=0.6202 finite=40/40 bitwise_repeat=40/40
+q_prep                   mean_ms=0.5349 speedup_vs_bf16=16.5470
+sample_00 bf16=6.930 pre_n96+qprep=5.934 fusedq_n96=5.553 fusedq_n80=5.591 speedup_fusedq_n96=1.2479
+sample_03 bf16=7.680 pre_n96+qprep=6.492 fusedq_n96=6.114 fusedq_n80=6.156 speedup_fusedq_n96=1.2561
+sample_04 bf16=7.948 pre_n96+qprep=6.696 fusedq_n96=6.317 fusedq_n80=6.359 speedup_fusedq_n96=1.2581
+sample_08 bf16=12.842 pre_n96+qprep=10.366 fusedq_n96=9.997 fusedq_n80=10.064 speedup_fusedq_n96=1.2846

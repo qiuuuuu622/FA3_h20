@@ -1,0 +1,107 @@
+--- a/mainloop_fwd_sm90_tma_gmma_ws.hpp
++++ b/mainloop_fwd_sm90_tma_gmma_ws.hpp
+@@ -54,6 +54,11 @@
+ #endif
+     // Experimental: INT8 QK (Q, K int8 with per-token fp32 scales), PV stays BF16.
+     static constexpr bool Int8_QK = FA3_INT8_QK && !Is_FP8;
++#ifndef FA3_INT8_QK_FUSED_Q
++#define FA3_INT8_QK_FUSED_Q 0
++#endif
++    // Q is BF16 in gmem and quantized (Hadamard + per-row int8) by the consumer warps.
++    static constexpr bool Int8_QK_FusedQ = Int8_QK && FA3_INT8_QK_FUSED_Q;
+     using ElementQK = std::conditional_t<Mixed_QK, cutlass::bfloat16_t, std::conditional_t<Int8_QK, int8_t, Element>>;
+     using ElementAccumQK = std::conditional_t<Int8_QK, int32_t, ElementAccum_>;
+     static constexpr bool Is_causal = Is_causal_;
+@@ -784,7 +789,7 @@
+         auto block_tma_Q = params.tma_load_Q.get_slice(_0{});
+         Tensor tQgQ = group_modes<0, 3>(block_tma_Q.partition_S(gQ));  // (TMA)
+         Tensor tQsQ = group_modes<0, 3>(block_tma_Q.partition_D(sQ));  // (TMA)
+-        if (Use_TMA_Q && thread_idx == 0) { prefetch(params.tma_load_Q, tQgQ); }
++        if (Use_TMA_Q && !Int8_QK_FusedQ && thread_idx == 0) { prefetch(params.tma_load_Q, tQgQ); }
+         // tma_partition doesn't handle position_independent_swizzle_tensor correctly, so we need to do it manually
+         auto block_tma_K = params.tma_load_K.get_slice(cluster_local_block_id.x);
+         Tensor tKgK_TMA = group_modes<0, 3>(block_tma_K.partition_S(gK_TMA));  // (TMA, k, batch)
+@@ -1016,7 +1021,7 @@
+                 cutlass::arch::NamedBarrier::sync(NumMmaThreadsQK + cutlass::NumThreadsPerWarp, static_cast<uint32_t>(FwdNamedBarriers::QueryEmpty) /*id*/);
+             }
+ 
+-            if ((SingleProducerWarp || warp_idx_in_warpgroup == 0) && cute::elect_one_sync()) {
++            if (!Int8_QK_FusedQ && (SingleProducerWarp || warp_idx_in_warpgroup == 0) && cute::elect_one_sync()) {
+                 shared_storage.pipelines.barrier_Q.arrive_and_expect_tx(TmaTransactionBytesQ);
+                 copy(params.tma_load_Q.with(reinterpret_cast<typename cutlass::arch::ClusterTransactionBarrier::ValueType&>(shared_storage.pipelines.barrier_Q), 0 /*mcast_mask*/, !Split ? TMA::CacheHintSm90::EVICT_FIRST : TMA::CacheHintSm90::EVICT_LAST),
+                     tQgQ, tQsQ);
+@@ -1319,7 +1324,7 @@
+ 
+         auto &barrier_Q = shared_storage.pipelines.barrier_Q;
+         if constexpr (!AppendKV) {
+-            barrier_Q.wait(work_idx % 2);
++            if constexpr (!Int8_QK_FusedQ) { barrier_Q.wait(work_idx % 2); }
+         } else {
+             if (get<1>(params.shape_rotary) > 0) {  // Apply rotary to Q
+                 using Rotary_t = Rotary<kBlockM, kHeadDim, NumMmaThreadsQK, ElementQK, !(Is_causal || Is_local) /*FixedPosition*/>;
+@@ -1367,10 +1372,64 @@
+         [[maybe_unused]] Tensor tScS_i8_rc = make_tensor(tScS_i8.data(), flash::convert_layout_acc_rowcol(tScS_i8.layout()));
+         static constexpr int kI8Rows = Int8_QK ? int(decltype(size<0>(tScS_i8_rc))::value) : 1;
+         [[maybe_unused]] float qs_i8[kI8Rows];
+-        if constexpr (Int8_QK) {
++        if constexpr (Int8_QK && !Int8_QK_FusedQ) {
+             float const* qs_ptr = params.ptr_q_descale + bidh * get<1>(params.stride_q_descale) + m_block * kBlockM;
+             #pragma unroll
+             for (int mi = 0; mi < kI8Rows; ++mi) { qs_i8[mi] = __ldg(qs_ptr + get<0>(tScS_i8_rc(mi, _0{}))); }
++        } else if constexpr (Int8_QK_FusedQ) {
++            static_assert(kBlockM == NumMmaThreadsQK / cutlass::NumThreadsPerWarp * 16 && kHeadDim == 256);
++            Tensor sQ_pi = cute::as_position_independent_swizzle_tensor(sQ);
++            int const lane = thread_idx % cutlass::NumThreadsPerWarp;
++            int const row0 = (thread_idx / cutlass::NumThreadsPerWarp) * 16;
++            int64_t const q_row_stride = get<0>(params.stride_Q);
++            cutlass::bfloat16_t const* q_base = reinterpret_cast<cutlass::bfloat16_t const*>(params.ptr_Q)
++                + (int64_t(seqlen_info.offset_q) + int64_t(m_block) * kBlockM) * q_row_stride
++                + int64_t(bidh) * get<2>(params.stride_Q) + int64_t(Varlen && params.cu_seqlens_q ? 0 : bidb) * get<3>(params.stride_Q);
++            #pragma unroll
++            for (int mi = 0; mi < kI8Rows; ++mi) { qs_i8[mi] = 0.f; }
++            #pragma unroll
++            for (int j = 0; j < 16; ++j) {
++                int const row = row0 + j;
++                float x[8];
++                uint4 raw = make_uint4(0, 0, 0, 0);
++                if (m_block * kBlockM + row < seqlen_q) {
++                    raw = __ldg(reinterpret_cast<uint4 const*>(q_base + row * q_row_stride) + lane);
++                }
++                cutlass::bfloat16_t const* xb = reinterpret_cast<cutlass::bfloat16_t const*>(&raw);
++                #pragma unroll
++                for (int e = 0; e < 8; ++e) { x[e] = float(xb[e]); }
++                // Sylvester FWHT: element index = lane * 8 + e; bits 0-2 in-thread, bits 3-7 across lanes.
++                #pragma unroll
++                for (int h = 1; h < 8; h <<= 1) {
++                    #pragma unroll
++                    for (int e = 0; e < 8; ++e) {
++                        if (!(e & h)) { float const a = x[e], b = x[e + h]; x[e] = a + b; x[e + h] = a - b; }
++                    }
++                }
++                #pragma unroll
++                for (int msk = 1; msk < 32; msk <<= 1) {
++                    #pragma unroll
++                    for (int e = 0; e < 8; ++e) {
++                        float const p = __shfl_xor_sync(0xffffffff, x[e], msk);
++                        x[e] = (lane & msk) ? p - x[e] : x[e] + p;
++                    }
++                }
++                float amax = 0.f;
++                #pragma unroll
++                for (int e = 0; e < 8; ++e) { x[e] *= 0.0625f; amax = fmaxf(amax, fabsf(x[e])); }
++                #pragma unroll
++                for (int msk = 1; msk < 32; msk <<= 1) { amax = fmaxf(amax, __shfl_xor_sync(0xffffffff, amax, msk)); }
++                float const s = __fdiv_rn(fmaxf(amax, 1e-10f), 127.f);
++                #pragma unroll
++                for (int e = 0; e < 8; ++e) {
++                    sQ_pi(row, lane * 8 + e) = int8_t(max(-127, min(127, __float2int_rn(__fdiv_rn(x[e], s)))));
++                }
++                #pragma unroll
++                for (int mi = 0; mi < kI8Rows; ++mi) { if (get<0>(tScS_i8_rc(mi, _0{})) == row) { qs_i8[mi] = s; } }
++            }
++            // Generic-proxy smem writes -> visible to GMMA (async proxy) for the whole QK warpgroup set.
++            cutlass::arch::fence_view_async_shared();
++            cutlass::arch::NamedBarrier::sync(NumMmaThreadsQK, static_cast<uint32_t>(FwdNamedBarriers::QueryRotated) /*id*/);
+         }
+         auto qk_to_float = [&](auto& tSrS_qk, int const n_blk) -> decltype(auto) {
+             if constexpr (!Int8_QK) {

@@ -1,0 +1,13 @@
+{
+  "sgl_attn_repository": "https://github.com/sgl-project/sgl-attn",
+  "sgl_attn_revision": "f89bc2306632d1ec5f97b014dded4254f5b4a907",
+  "source_archive_sha256": "738bc3b9625effaa5f81f11d59d6d8799c4c4d2d1e502220aebcfa4bbb194095",
+  "cutlass_revision": "7127592069c2fe01b041e174ba4345ef9b279671",
+  "mainloop_before_sha256": "611c7e1062db972a68bff9d820410b6b8c9a4989a3f6aaaf689a4e8d778071f8",
+  "build_specialization": "SM90 H20 78SM B1 Hq16 Hkv2 D256 page16 causal; no installed packages changed",
+  "model_pow2_and_oracle_env": {
+    "SGLANG_JIT_DEEPGEMM_PRECOMPILE": "0",
+    "reason": "skip redundant compilation warmup only; same inference kernels"
+  },
+  "http_service_started": false
+}
